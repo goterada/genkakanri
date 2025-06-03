@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地盤改良 原価計算ツール v3</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&display=swap'); /* モダンな日本語フォント */
+
+        body {
+            font-family: 'Noto Sans JP', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #eef2f5; /* 全体の背景色を明るく */
+            color: #34495e; /* テキスト色を濃いグレーに */
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px; /* 角をより丸く */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* 影を強調 */
+            border: 1px solid #e0e6eb; /* 軽いボーダーを追加 */
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 2.2em;
+        }
+        .tool-description {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+            color: #555;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.8;
+        }
+        .section-title {
+            background-color: #f7f9fb; /* 明るい背景 */
+            color: #2c3e50;
+            padding: 12px 20px;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            border-left: 6px solid #3498db; /* アクセントカラー */
+            font-weight: 700;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 6px; /* 角丸 */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* 軽い影 */
+            position: relative; /* ツールチップの基準 */
+        }
+        .section-title.with-checkbox {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-title input[type="checkbox"] {
+            margin-left: 15px;
+            transform: scale(1.4); /* チェックボックスを少し大きく表示 */
+            accent-color: #3498db; /* アクセントカラーを適用 */
+        }
+        /* ツールチップスタイル */
+        .tooltip-icon {
+            margin-left: 10px;
+            cursor: help;
+            color: #3498db;
+            font-size: 1.1em;
+            border: 1px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            transition: all 0.2s ease-in-out;
+        }
+        .tooltip-icon:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        .tooltip-content {
+            visibility: hidden;
+            width: 300px;
+            background-color: #555;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 120%; /* タイトルの上に表示 */
+            left: 50%;
+            margin-left: -150px; /* 中央寄せ */
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-size: 0.9em;
+        }
+        .tooltip-icon:hover + .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+
+        .section-content {
+            display: block; /* 初期状態では表示 */
+            padding: 10px 0;
+        }
+        .section-content.hidden {
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate; /* ボーダーの間隔を設けるため */
+            border-spacing: 0 8px; /* 行間のスペース */
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #e0e6eb; /* 軽いボーダー */
+            padding: 12px 15px;
+            text-align: left;
+            background-color: #fcfdff; /* セル背景 */
+            border-radius: 6px; /* セルにも角丸 */
+        }
+        th {
+            background-color: #ebf2f7; /* ヘッダー背景を明るいブルーグレーに */
+            font-weight: 600;
+            color: #4a6a8a;
+            border-bottom: 2px solid #cce0ec;
+        }
+        tr:first-child th:first-child { border-top-left-radius: 6px; }
+        tr:first-child th:last-child { border-top-right-radius: 6px; }
+        tr:last-child td:first-child { border-bottom-left-radius: 6px; }
+        tr:last-child td:last-child { border-bottom-right-radius: 6px; }
+
+
+        td input[type="text"],
+        td input[type="number"],
+        td select {
+            width: calc(100% - 20px); /* パディングを考慮 */
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #dbe2e8;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        td input[type="text"]:focus,
+        td input[type="number"]:focus,
+        td select:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+        td input[type="number"] {
+            text-align: right;
+        }
+        .text-right {
+            text-align: right;
+            font-weight: 600; /* 金額は少し強調 */
+        }
+        .total-row {
+            background-color: #e6f7ef; /* 緑がかった薄い背景 */
+            font-weight: 700;
+            color: #28a745; /* 緑色 */
+        }
+        .grand-total-row {
+            background-color: #d4edda; /* さらに濃い緑がかった背景 */
+            font-weight: 700;
+            font-size: 1.3em;
+            color: #1a7e3d; /* 濃い緑色 */
+            border-top: 2px solid #a6e0b4;
+        }
+        /* 新しく追加する利益表示のスタイル */
+        .profit-loss-row {
+            background-color: #ffe0b2; /* 薄いオレンジ */
+            font-weight: 700;
+            font-size: 1.3em;
+            color: #d17500; /* 濃いオレンジ色 */
+            border-top: 2px solid #ffcc80;
+        }
+        .profit {
+            color: #28a745; /* 緑色 */
+        }
+        .loss {
+            color: #dc3545; /* 赤色 */
+        }
+        .add-row-btn, .remove-row-btn {
+            background-color: #28a745; /* 緑 */
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .remove-row-btn {
+            background-color: #dc3545; /* 赤 */
+            margin-left: 5px; /* ボタン間のスペース */
+        }
+        .add-row-btn:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+        }
+        .remove-row-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-1px);
+        }
+        .button-group {
+            text-align: center;
+            margin-top: 40px;
+        }
+        .button-group button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px; /* より丸く */
+            cursor: pointer;
+            font-size: 1.1em;
+            margin: 0 10px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+        }
+        .button-group button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 123, 255, 0.3);
+        }
+
+        /* モーダルウィンドウのスタイル (削除済) */
+        /* .modal { display: none; } */
+        /* .modal-content { } */
+        /* .close-button { } */
+        /* .preview-area { } */
+        /* .modal-buttons { } */
+
+        .narrow-col {
+            width: 140px; /* 数量や単位など少し広げる */
+        }
+        /* 新しいチェックボックスのスタイル */
+        .cost-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* 間隔を広げる */
+            align-items: center;
+            padding: 10px 0;
+        }
+        .cost-checkbox-group label {
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: #444;
+        }
+        .cost-checkbox-group input[type="checkbox"] {
+            transform: scale(1.2); /* やや大きく */
+            margin-right: 8px;
+            accent-color: #3498db; /* アクセントカラーを適用 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>地盤改良 原価計算ツール</h1>
+        <p class="tool-description">
+            このツールは、地盤改良工事の原価を効率的に算出し、見積もりに対する利益をリアルタイムで把握するためのものです。各項目に情報を入力するだけで、自動的に計算が行われます。
+        </p>
+
+        <div class="section-title">
+            <span>プロジェクト情報</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                工事の基本情報を入力します。工事日数は、外注費や一般管理費など、日数に連動する項目の初期値として設定されます。
+            </div>
+        </div>
+        <table>
+            <tr>
+                <th>工事名</th>
+                <td><input type="text" id="project_name" value="〇〇地盤改良工事"></td>
+            </tr>
+            <tr>
+                <th>日付</th>
+                <td><input type="date" id="project_date" value=""></td>
+            </tr>
+            <tr>
+                <th>工事日数</th>
+                <td><input type="number" id="construction_days" value="" min="0" oninput="updateDependentQuantities(); calculateAll()"> 日</td>
+            </tr>
+            <tr>
+                <th>費用項目</th>
+                <td colspan="3">
+                    <div class="cost-checkbox-group">
+                        <label><input type="checkbox" id="guardman_checkbox" onchange="toggleSection('guardman_section_content', 'guardman_cost_total')"> ガードマン</label>
+                        <label><input type="checkbox" id="roughter_checkbox" onchange="toggleSection('roughter_section_content', 'roughter_cost_total')"> ラフター</label>
+                        <label><input type="checkbox" id="water_sprinkler_checkbox" onchange="toggleSection('water_sprinkler_section_content', 'water_sprinkler_cost_total')"> 散水車</label>
+                        <label><input type="checkbox" id="land_creation_checkbox" onchange="toggleSection('land_creation_section_content', 'land_creation_cost_total')"> 造成費用</label>
+                        <label><input type="checkbox" id="soil_disposal_checkbox" onchange="toggleSection('soil_disposal_section_content', 'soil_disposal_cost_total')"> 残土処分費</label>
+                        <label><input type="checkbox" id="other_checkbox" onchange="toggleSection('other_section_content', 'other_cost_total')"> その他作業</label>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="section-title">
+            <span>見積もりと利益</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                お客様への見積もり金額を入力し、総原価と比較した際の利益（または赤字）をリアルタイムで確認できます。
+            </div>
+        </div>
+        <table>
+            <tbody>
+                <tr>
+                    <th>見積もり金額</th>
+                    <td><input type="number" id="estimate_amount" value="" min="0" oninput="updateGrandTotal()"> 円</td>
+                </tr>
+                <tr class="profit-loss-row">
+                    <th>利益（黒字/赤字）</th>
+                    <td class="text-right" id="profit_loss_amount"> 円</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-title">
+            <span>外注費</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                外部業者に委託する作業の費用を計算します。工事日数が数量に自動反映されます。連日割引も考慮可能です。
+            </div>
+        </div>
+        <div id="subcontract_section_content" class="section-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量（日数）</th>
+                        <th class="narrow-col">単価</th>
+                        <th class="narrow-col">連日割引</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody id="subcontract_cost_body">
+                    <tr>
+                        <td>外注費</td>
+                        <td>日</td>
+                        <td><input type="number" value="" min="1" oninput="calculateSubcontractCost()" id="subcontract_quantity"></td>
+                        <td>
+                            <select onchange="updateUnitPrice(this)">
+                                <option value="40000">40,000</option>
+                                <option value="60000">60,000</option>
+                                <option value="80000">80,000</option>
+                                <option value="130000">130,000</option>
+                                <option value="140000">140,000</option>
+                                <option value="150000">150,000</option>
+                                <option value="200000">200,000</option>
+                                <option value="custom">その他</option>
+                            </select>
+                            <input type="number" class="custom-unit-price" style="display:none;" value="" oninput="calculateSubcontractCost()">
+                        </td>
+                        <td><input type="checkbox" onchange="calculateSubcontractCost()"></td>
+                        <td class="text-right"><span id="subcontract_amount"></span></td>
+                        <td><input type="text" value=""></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="5" class="text-right">外注費 合計</td>
+                        <td class="text-right" id="subcontract_cost_total"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>固化材</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                地盤改良に使用する固化材の費用を計算します。複数の種類やロットがある場合、行を追加して入力できます。入力された合計数量は残土処分費に連動します。
+            </div>
+            <button class="add-row-btn" onclick="addRow('solidifier_cost_body', '固化材', 't', '', '15000', 'セメント系固化材')">行を追加</button>
+        </div>
+        <div id="solidifier_section_content" class="section-content">
+            <table id="solidifier_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量</th>
+                        <th class="narrow-col">単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="solidifier_cost_body">
+                    <tr>
+                        <td><input type="text" value="固化材"></td>
+                        <td><input type="text" value="t"></td>
+                        <td><input type="number" value="" oninput="calculateRow(this); updateSoilDisposalSolidifierQuantity();"></td>
+                        <td><input type="number" value="15000" oninput="calculateRow(this)"></td>
+                        <td class="text-right"><span class="amount"></span></td>
+                        <td><input type="text" value="セメント系固化材"></td>
+                        <td><button class="remove-row-btn" onclick="removeRow(this); updateSoilDisposalSolidifierQuantity();">削除</button></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">固化材 合計</td>
+                        <td class="text-right" id="solidifier_cost_total"></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>ガードマン</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                交通誘導員など、ガードマンの費用を計算します。工事日数と人数に基づいて費用を算出できます。
+            </div>
+        </div>
+        <div id="guardman_section_content" class="section-content hidden">
+            <table id="guardman_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量（日数）</th>
+                        <th class="narrow-col">人数</th>
+                        <th class="narrow-col">単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody id="guardman_cost_body">
+                    <tr>
+                        <td>ガードマン</td>
+                        <td>人日</td>
+                        <td><input type="number" value="" min="1" oninput="calculateGuardmanCost()" id="guardman_quantity"></td>
+                        <td><input type="number" value="" min="1" oninput="calculateGuardmanCost()"></td>
+                        <td><input type="number" value="15000" oninput="calculateGuardmanCost()"></td>
+                        <td class="text-right"><span id="guardman_amount"></span></td>
+                        <td><input type="text" value="交通整理員"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="5" class="text-right">ガードマン 合計</td>
+                        <td class="text-right" id="guardman_cost_total"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>ラフター</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                ラフタークレーンを使用する場合の費用を計算します。
+            </div>
+        </div>
+        <div id="roughter_section_content" class="section-content hidden">
+            <table id="roughter_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量（日数）</th>
+                        <th class="narrow-col">単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody id="roughter_cost_body">
+                    <tr>
+                        <td>ラフター</td>
+                        <td>日</td>
+                        <td><input type="number" value="" min="1" oninput="calculateRoughterCost()"></td>
+                        <td><input type="number" value="70000" oninput="calculateRoughterCost()"></td>
+                        <td class="text-right"><span id="roughter_amount"></span></td>
+                        <td><input type="text" value=""></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">ラフター 合計</td>
+                        <td class="text-right" id="roughter_cost_total"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>散水車</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                現場での散水作業に散水車を使用する場合の費用を計算します。工事日数と連動します。
+            </div>
+        </div>
+        <div id="water_sprinkler_section_content" class="section-content hidden">
+            <table id="water_sprinkler_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量（日数）</th>
+                        <th class="narrow-col">単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody id="water_sprinkler_cost_body">
+                    <tr>
+                        <td>散水車</td>
+                        <td>日</td>
+                        <td><input type="number" value="" min="1" oninput="calculateWaterSprinklerCost()" id="water_sprinkler_quantity"></td>
+                        <td><input type="number" value="70000" oninput="calculateWaterSprinklerCost()"></td>
+                        <td class="text-right"><span id="water_sprinkler_amount"></span></td>
+                        <td><input type="text" value=""></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">散水車 合計</td>
+                        <td class="text-right" id="water_sprinkler_cost_total"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>造成費用</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                工事に伴う造成作業の費用を計算します。
+            </div>
+        </div>
+        <div id="land_creation_section_content" class="section-content hidden">
+            <table id="land_creation_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量（式）</th>
+                        <th class="narrow-col">単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody id="land_creation_cost_body">
+                    <tr>
+                        <td>造成費用</td>
+                        <td>式</td>
+                        <td><input type="number" value="" min="1" oninput="calculateLandCreationCost()"></td>
+                        <td><input type="number" value="40000" oninput="calculateLandCreationCost()"></td>
+                        <td class="text-right"><span id="land_creation_amount"></span></td>
+                        <td><input type="text" value="造成工事一式"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">造成費用 合計</td>
+                        <td class="text-right" id="land_creation_cost_total"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>残土処分費</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                発生した残土の運搬・処分費用を計算します。固化材の合計数量に基づいて運搬車両の台数が自動計算されます。
+            </div>
+        </div>
+        <div id="soil_disposal_section_content" class="section-content hidden">
+            <table id="soil_disposal_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">作業費数量（日数）</th>
+                        <th class="narrow-col">作業費単価</th>
+                        <th class="narrow-col">固化材数量（t）</th>
+                        <th class="narrow-col">台数</th>
+                        <th class="narrow-col">台数単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody id="soil_disposal_cost_body">
+                    <tr>
+                        <td>残土処分費</td>
+                        <td>式</td>
+                        <td><input type="number" value="" min="0" oninput="calculateSoilDisposalCost()"></td>
+                        <td><input type="number" value="40000" oninput="calculateSoilDisposalCost()"></td>
+                        <td><input type="number" value="" min="0" oninput="calculateSoilDisposalCost()" id="soil_disposal_solidifier_quantity" readonly></td>
+                        <td class="text-right"><span id="disposal_truck_count"></span></td>
+                        <td><input type="number" value="" oninput="calculateSoilDisposalCost()"></td>
+                        <td class="text-right"><span id="soil_disposal_amount"></span></td>
+                        <td><input type="text" value="残土運搬・処分"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="7" class="text-right">残土処分費 合計</td>
+                        <td class="text-right" id="soil_disposal_cost_total"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>その他</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                上記カテゴリに該当しないその他の費用を入力します。必要に応じて自由に行を追加・削除できます。
+            </div>
+            <button class="add-row-btn" onclick="addRow('other_cost_body', '', '', '', '', '')">行を追加</button>
+        </div>
+        <div id="other_section_content" class="section-content hidden">
+            <table id="other_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量</th>
+                        <th class="narrow-col">単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="other_cost_body">
+                    <tr>
+                        <td><input type="text" value=""></td>
+                        <td><input type="text" value=""></td>
+                        <td><input type="number" value="" oninput="calculateRow(this)"></td>
+                        <td><input type="number" value="" oninput="calculateRow(this)"></td>
+                        <td class="text-right"><span class="amount"></span></td>
+                        <td><input type="text" value=""></td>
+                        <td><button class="remove-row-btn" onclick="removeRow(this)">削除</button></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">その他 合計</td>
+                        <td class="text-right" id="other_cost_total"></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>一般管理費</span>
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-content">
+                現場事務費など、工事全体にかかる間接的な費用を計算します。工事日数と連動します。
+            </div>
+        </div>
+        <div id="general_admin_section_content" class="section-content">
+            <table id="general_admin_cost_table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>単位</th>
+                        <th class="narrow-col">数量（日数）</th>
+                        <th class="narrow-col">単価</th>
+                        <th>金額</th>
+                        <th>摘要</th>
+                    </tr>
+                </thead>
+                <tbody id="general_admin_cost_body">
+                    <tr>
+                        <td>一般管理費</td>
+                        <td>日</td>
+                        <td><input type="number" value="" min="1" oninput="calculateGeneralAdminCost()" id="general_admin_quantity"></td>
+                        <td><input type="number" value="90000" oninput="calculateGeneralAdminCost()" readonly></td>
+                        <td class="text-right"><span id="general_admin_amount"></span></td>
+                        <td><input type="text" value="現場事務費等"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">一般管理費 合計</td>
+                        <td class="text-right" id="general_admin_cost_total"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <span>総原価</span>
+        </div>
+        <table>
+            <tfoot>
+                <tr class="grand-total-row">
+                    <td colspan="4" class="text-right">総原価 合計</td>
+                    <td class="text-right" id="grand_total_cost"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="button-group">
+            <button onclick="calculateAll()">全項目を再計算</button>
+            <button onclick="exportToCsv()">CSVとして出力</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 現在の日付をデフォルトで設定
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('project_date').value = `${year}-${month}-${day}`;
+
+            // すべての金額表示と入力欄を初期化（空にする）
+            initializeAllAmounts();
+
+            // 初期計算を実行（これにより、空欄のまま計算結果も空になる）
+            calculateAll();
+            // showCsvPreview(); // CSVプレビュー表示の呼び出しは削除されました
+        });
+
+        // セクションの表示/非表示を切り替える関数 (工事日数のチェックボックスに集約)
+        function toggleSection(contentId, totalId) {
+            const contentDiv = document.getElementById(contentId);
+            const checkboxId = contentId.replace('_section_content', '_checkbox'); // 例: guardman_section_content -> guardman_checkbox
+            const checkbox = document.getElementById(checkboxId);
+
+            if (checkbox.checked) {
+                contentDiv.classList.remove('hidden');
+                // チェックされたら工事日数を数量に設定（該当項目のみ）
+                const constructionDays = parseFloat(document.getElementById('construction_days').value) || "";
+                if (contentId === 'guardman_section_content') {
+                    document.getElementById('guardman_quantity').value = constructionDays;
+                } else if (contentId === 'water_sprinkler_section_content') {
+                    document.getElementById('water_sprinkler_quantity').value = constructionDays;
+                }
+                // ラフター、造成費用、残土処分費、その他作業は工事日数に連動しないため、ここでは設定しない。
+            } else {
+                contentDiv.classList.add('hidden');
+                // 非表示にする際、そのセクションの合計を0にする
+                if (totalId) {
+                    document.getElementById(totalId).textContent = ""; // 合計を空にする
+                    // 非表示になったセクションの入力値をクリア（計算に影響しないように）
+                    const inputsInHiddenSection = contentDiv.querySelectorAll('input[type="number"]');
+                    inputsInHiddenSection.forEach(input => {
+                        // 固定単価のものはクリアしない
+                        if (input.value !== "15000" && input.value !== "70000" && input.value !== "40000") {
+                            input.value = "";
+                        }
+                    });
+                    const spansInHiddenSection = contentDiv.querySelectorAll('span.amount, span[id$="_amount"]');
+                    spansInHiddenSection.forEach(span => {
+                        span.textContent = "";
+                    });
+                    // 残土処分の台数表示もクリア
+                    if (contentId === 'soil_disposal_section_content') {
+                        document.getElementById('disposal_truck_count').textContent = "";
+                        document.getElementById('soil_disposal_solidifier_quantity').value = ""; // 残土処分費の固化材数量もクリア
+                    }
+                }
+            }
+            calculateAll(); // 表示/非表示が切り替わったら全項目を再計算
+        }
+
+
+        // すべての金額表示と入力欄を空にする関数を追加
+        function initializeAllAmounts() {
+            // 見積もり金額
+            document.getElementById('estimate_amount').value = "";
+            document.getElementById('profit_loss_amount').textContent = " 円";
+
+            // 工事日数も初期は空
+            document.getElementById('construction_days').value = "";
+
+            // 各セクションの金額入力欄と表示欄を空にする
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                // 固定単価のinputは初期値を残す (一般管理費、固化材、ガードマン、ラフター、散水車、造成費用、残土処分作業費)
+                if (input.id !== 'general_admin_quantity' && input.id !== 'subcontract_quantity' && input.id !== 'guardman_quantity' && input.id !== 'water_sprinkler_quantity' && input.id !== 'soil_disposal_solidifier_quantity') {
+                    if (input.value !== "90000" && input.value !== "15000" && input.value !== "70000" && input.value !== "40000") {
+                        input.value = "";
+                    }
+                } else {
+                    // 工事日数に連動する数量フィールドや残土固化材数量は初期化で空にする
+                    input.value = "";
+                }
+            });
+
+            document.querySelectorAll('span.amount, span[id$="_amount"], span[id$="_total"], span[id="grand_total_cost"]').forEach(span => {
+                span.textContent = ""; // 金額表示を空にする
+            });
+
+            // 残土処分の台数表示も空にする
+            document.getElementById('disposal_truck_count').textContent = "";
+
+            // 初期ロード時にチェックボックスの状態を反映
+            // すべてのチェックボックスをオフにし、対応するセクションを非表示にする
+            const checkboxes = ['guardman_checkbox', 'roughter_checkbox', 'water_sprinkler_checkbox', 'land_creation_checkbox', 'soil_disposal_checkbox', 'other_checkbox'];
+            checkboxes.forEach(checkboxId => {
+                const checkbox = document.getElementById(checkboxId);
+                if (checkbox) {
+                    checkbox.checked = false; // 強制的にオフ
+                    toggleSection(checkboxId.replace('_checkbox', '_section_content'), checkboxId.replace('_checkbox', '_cost_total'));
+                }
+            });
+             // 「その他」の合計を初期化
+            document.getElementById('other_cost_total').textContent = "";
+        }
+
+
+        // 工事日数に連動する項目を更新する関数
+        function updateDependentQuantities() {
+            const constructionDays = parseFloat(document.getElementById('construction_days').value) || "";
+
+            // 工事日数に連動するquantity inputのIDリスト
+            const dependentQuantityIds = ['subcontract_quantity', 'general_admin_quantity'];
+
+            // ガードマン、散水車はチェックが入っている場合のみ連動
+            if (document.getElementById('guardman_checkbox').checked) {
+                dependentQuantityIds.push('guardman_quantity');
+            }
+            if (document.getElementById('water_sprinkler_checkbox').checked) {
+                dependentQuantityIds.push('water_sprinkler_quantity');
+            }
+
+            dependentQuantityIds.forEach(id => {
+                const inputElement = document.getElementById(id);
+                if (inputElement) {
+                    inputElement.value = constructionDays;
+                }
+            });
+
+            calculateAll(); // 工事日数が変更されたら全項目を再計算
+        }
+
+
+        // =========================================================================
+        // 各項目ごとの計算ロジック
+        // =========================================================================
+
+        // 外注費の計算
+        function calculateSubcontractCost() {
+            const row = document.querySelector('#subcontract_cost_body tr');
+            const quantityInput = row.children[2].querySelector('input[type="number"]');
+            const unitPriceSelect = row.children[3].querySelector('select');
+            const customUnitPriceInput = row.children[3].querySelector('.custom-unit-price');
+            const discountCheckbox = row.children[4].querySelector('input[type="checkbox"]');
+            const amountSpan = row.children[5].querySelector('span');
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+            let baseUnitPrice = 0; // 割引前の基本単価
+
+            if (unitPriceSelect.value === 'custom') {
+                baseUnitPrice = parseFloat(customUnitPriceInput.value) || 0;
+                customUnitPriceInput.style.display = 'inline-block';
+            } else {
+                baseUnitPrice = parseFloat(unitPriceSelect.value) || 0;
+                customUnitPriceInput.style.display = 'none';
+            }
+
+            let calculatedUnitPrice = baseUnitPrice; // 実際に計算に使う単価
+
+            // 連日割引にチェックが入っていたら単価を-10000円
+            if (discountCheckbox.checked) {
+                calculatedUnitPrice = Math.max(0, baseUnitPrice - 10000); // 0を下回らないように
+            }
+
+            const totalAmount = quantity * calculatedUnitPrice;
+
+            // 金額が0の場合は空欄にする
+            amountSpan.textContent = totalAmount === 0 ? "" : totalAmount.toLocaleString();
+            updateSectionTotal('subcontract_cost_table');
+            updateGrandTotal();
+        }
+
+        // 単価選択が変更された時にカスタム入力フィールドを表示/非表示
+        function updateUnitPrice(selectElement) {
+            const customInput = selectElement.nextElementSibling;
+            if (selectElement.value === 'custom') {
+                customInput.style.display = 'inline-block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.value = '';
+            }
+            calculateSubcontractCost();
+        }
+
+        // 固化材やその他の一般的な行の計算（数量 * 単価）
+        function calculateRow(inputElement) {
+            const row = inputElement.closest('tr');
+            const quantityInput = row.children[2].querySelector('input[type="number"]');
+            const unitPriceInput = row.children[3].querySelector('input[type="number"]');
+            const amountSpan = row.children[4].querySelector('.amount');
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+
+            const amount = quantity * unitPrice;
+            amountSpan.textContent = amount === 0 ? "" : amount.toLocaleString();
+
+            updateSectionTotal(row.closest('table').id);
+            updateGrandTotal();
+        }
+
+        // ガードマンの計算 (人数 × 日数 × 単価)
+        function calculateGuardmanCost() {
+            const row = document.querySelector('#guardman_cost_body tr');
+            const quantityInput = row.children[2].querySelector('input[type="number"]');
+            const personsInput = row.children[3].querySelector('input[type="number"]');
+            const unitPriceInput = row.children[4].querySelector('input[type="number"]');
+            const amountSpan = row.children[5].querySelector('span');
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const persons = parseFloat(personsInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+
+            const amount = quantity * persons * unitPrice;
+            amountSpan.textContent = amount === 0 ? "" : amount.toLocaleString();
+            updateSectionTotal('guardman_cost_table');
+            updateGrandTotal();
+        }
+
+        // ラフターの計算
+        function calculateRoughterCost() {
+            const row = document.querySelector('#roughter_cost_body tr');
+            const quantityInput = row.children[2].querySelector('input[type="number"]');
+            const unitPriceInput = row.children[3].querySelector('input[type="number"]');
+            const amountSpan = row.children[4].querySelector('span');
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+
+            const amount = quantity * unitPrice;
+            amountSpan.textContent = amount === 0 ? "" : amount.toLocaleString();
+            updateSectionTotal('roughter_cost_table');
+            updateGrandTotal();
+        }
+
+        // 散水車の計算
+        function calculateWaterSprinklerCost() {
+            const row = document.querySelector('#water_sprinkler_cost_body tr');
+            const quantityInput = row.children[2].querySelector('input[type="number"]');
+            const unitPriceInput = row.children[3].querySelector('input[type="number"]');
+            const amountSpan = row.children[4].querySelector('span');
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+
+            const amount = quantity * unitPrice;
+            amountSpan.textContent = amount === 0 ? "" : amount.toLocaleString();
+            updateSectionTotal('water_sprinkler_cost_table');
+            updateGrandTotal();
+        }
+
+        // 造成費用の計算
+        function calculateLandCreationCost() {
+            const row = document.querySelector('#land_creation_cost_body tr');
+            const quantityInput = row.children[2].querySelector('input[type="number"]');
+            const unitPriceInput = row.children[3].querySelector('input[type="number"]');
+            const amountSpan = row.children[4].querySelector('span');
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+
+            const amount = quantity * unitPrice;
+            amountSpan.textContent = amount === 0 ? "" : amount.toLocaleString();
+            updateSectionTotal('land_creation_cost_table');
+            updateGrandTotal();
+        }
+
+        // 残土処分の計算
+        function calculateSoilDisposalCost() {
+            const row = document.querySelector('#soil_disposal_cost_body tr');
+            const workQuantityInput = row.children[2].querySelector('input[type="number"]');
+            const workUnitPriceInput = row.children[3].querySelector('input[type="number"]');
+            const solidifierQuantityInput = row.children[4].querySelector('input[type="number"]');
+            const truckCountSpan = row.children[5].querySelector('span');
+            const truckUnitPriceInput = row.children[6].querySelector('input[type="number"]');
+            const amountSpan = row.children[7].querySelector('span');
+
+            const workQuantity = parseFloat(workQuantityInput.value) || 0;
+            const workUnitPrice = parseFloat(workUnitPriceInput.value) || 0;
+            const solidifierQuantity = parseFloat(solidifierQuantityInput.value) || 0;
+            const truckUnitPrice = parseFloat(truckUnitPriceInput.value) || 0;
+
+            const truckCount = Math.ceil((solidifierQuantity * 1.3) / 2);
+            truckCountSpan.textContent = truckCount === 0 ? "" : truckCount; // 台数も0の場合は空にする
+
+            const workCost = workQuantity * workUnitPrice;
+            const truckCost = truckCount * truckUnitPrice;
+
+            const totalAmount = workCost + truckCost;
+            amountSpan.textContent = totalAmount === 0 ? "" : totalAmount.toLocaleString();
+            updateSectionTotal('soil_disposal_cost_table');
+            updateGrandTotal();
+        }
+
+        // 残土処分の固化材数量を更新する関数 (固化材の合計数量を反映)
+        function updateSoilDisposalSolidifierQuantity() {
+            let totalSolidifierQuantity = 0;
+            // 固化材セクションが非表示の場合は計算に含めない
+            // 固化材は常に表示されるため、このif文は不要だが、既存ロジックに合わせて残しておく
+            if (!document.getElementById('solidifier_section_content').classList.contains('hidden')) {
+                document.querySelectorAll('#solidifier_cost_body tr').forEach(row => {
+                    const quantityInput = row.children[2].querySelector('input[type="number"]');
+                    totalSolidifierQuantity += parseFloat(quantityInput.value) || 0;
+                });
+            }
+            document.getElementById('soil_disposal_solidifier_quantity').value = totalSolidifierQuantity === 0 ? "" : totalSolidifierQuantity;
+            calculateSoilDisposalCost(); // 数量が変わったので残土処分費を再計算
+        }
+
+
+        // 一般管理費の計算 (単価固定)
+        function calculateGeneralAdminCost() {
+            const row = document.querySelector('#general_admin_cost_body tr');
+            const quantityInput = row.children[2].querySelector('input[type="number"]');
+            const unitPrice = 90000;
+            const amountSpan = row.children[4].querySelector('span');
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+
+            const amount = quantity * unitPrice;
+            amountSpan.textContent = amount === 0 ? "" : amount.toLocaleString();
+            updateSectionTotal('general_admin_cost_table');
+            updateGrandTotal();
+        }
+
+
+        // =========================================================================
+        // 共通ロジック
+        // =========================================================================
+
+        // 各セクションの合計を更新する関数
+        function updateSectionTotal(tableId) {
+            let total = 0;
+            const tableBody = document.getElementById(tableId.replace('_table', '_body'));
+            const sectionContent = tableBody.closest('.section-content');
+
+            // セクションが非表示の場合は合計を0として処理を終了
+            // ただし、新しいロジックでは非表示セクションの計算はスキップされるので、
+            // ここで改めてチェックする必要はないかもしれないが、念のため残しておく。
+            if (sectionContent && sectionContent.classList.contains('hidden')) {
+                if (document.getElementById(tableId.replace('_table', '_total'))) {
+                    document.getElementById(tableId.replace('_table', '_total')).textContent = "";
+                }
+                return;
+            }
+
+            switch (tableId) {
+                case 'subcontract_cost_table':
+                    total = parseFloat(document.getElementById('subcontract_amount').textContent.replace(/,/g, '')) || 0;
+                    document.getElementById('subcontract_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                case 'guardman_cost_table':
+                    total = parseFloat(document.getElementById('guardman_amount').textContent.replace(/,/g, '')) || 0;
+                    document.getElementById('guardman_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                case 'roughter_cost_table':
+                    total = parseFloat(document.getElementById('roughter_amount').textContent.replace(/,/g, '')) || 0;
+                    document.getElementById('roughter_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                case 'water_sprinkler_cost_table':
+                    total = parseFloat(document.getElementById('water_sprinkler_amount').textContent.replace(/,/g, '')) || 0;
+                    document.getElementById('water_sprinkler_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                case 'land_creation_cost_table':
+                    total = parseFloat(document.getElementById('land_creation_amount').textContent.replace(/,/g, '')) || 0;
+                    document.getElementById('land_creation_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                case 'soil_disposal_cost_table':
+                    total = parseFloat(document.getElementById('soil_disposal_amount').textContent.replace(/,/g, '')) || 0;
+                    document.getElementById('soil_disposal_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                case 'general_admin_cost_table':
+                    total = parseFloat(document.getElementById('general_admin_amount').textContent.replace(/,/g, '')) || 0;
+                    document.getElementById('general_admin_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                case 'other_cost_table': // その他項目
+                    tableBody.querySelectorAll('tr').forEach(row => {
+                        const amountSpan = row.children[4].querySelector('.amount');
+                        total += parseFloat(amountSpan.textContent.replace(/,/g, '')) || 0;
+                    });
+                    document.getElementById('other_cost_total').textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+                default: // 固化材のように複数行がある場合 (かつother_cost_table以外)
+                    tableBody.querySelectorAll('tr').forEach(row => {
+                        const amountSpan = row.children[4].querySelector('.amount');
+                        total += parseFloat(amountSpan.textContent.replace(/,/g, '')) || 0;
+                    });
+                    document.getElementById(tableId.replace('_table', '_total')).textContent = total === 0 ? "" : total.toLocaleString();
+                    break;
+            }
+        }
+
+
+        // 全項目の合計を再計算する関数
+        function calculateAll() {
+            calculateSubcontractCost(); // 外注費は常に表示
+            
+            // 固化材は常に表示
+            document.querySelectorAll('#solidifier_cost_body input[type="number"]').forEach(input => {
+                calculateRow(input);
+            });
+            updateSoilDisposalSolidifierQuantity(); // 固化材の合計を更新してから残土処分を計算
+
+            // 各チェックボックスの状態に基づいて計算関数を呼び出す
+            if (document.getElementById('guardman_checkbox').checked) {
+                calculateGuardmanCost();
+            } else {
+                document.getElementById('guardman_amount').textContent = "";
+                document.getElementById('guardman_cost_total').textContent = "";
+                // 非表示時の入力値クリアはtoggleSectionで対応済みだが、念のためここでもクリア
+                document.getElementById('guardman_quantity').value = ""; // 数量をクリア
+                document.querySelector('#guardman_cost_body tr').children[3].querySelector('input[type="number"]').value = ""; // 人数をクリア
+            }
+
+            if (document.getElementById('roughter_checkbox').checked) {
+                calculateRoughterCost();
+            } else {
+                document.getElementById('roughter_amount').textContent = "";
+                document.getElementById('roughter_cost_total').textContent = "";
+                document.querySelector('#roughter_cost_body tr').children[2].querySelector('input[type="number"]').value = ""; // 数量をクリア
+            }
+
+            if (document.getElementById('water_sprinkler_checkbox').checked) {
+                calculateWaterSprinklerCost();
+            } else {
+                document.getElementById('water_sprinkler_amount').textContent = "";
+                document.getElementById('water_sprinkler_cost_total').textContent = "";
+                document.getElementById('water_sprinkler_quantity').value = ""; // 数量をクリア
+            }
+
+            if (document.getElementById('land_creation_checkbox').checked) {
+                calculateLandCreationCost();
+            } else {
+                document.getElementById('land_creation_amount').textContent = "";
+                document.getElementById('land_creation_cost_total').textContent = "";
+                document.querySelector('#land_creation_cost_body tr').children[2].querySelector('input[type="number"]').value = ""; // 数量をクリア
+            }
+
+            if (document.getElementById('soil_disposal_checkbox').checked) {
+                calculateSoilDisposalCost();
+            } else {
+                document.getElementById('soil_disposal_amount').textContent = "";
+                document.getElementById('soil_disposal_cost_total').textContent = "";
+                document.getElementById('disposal_truck_count').textContent = ""; // 台数もクリア
+                document.getElementById('soil_disposal_solidifier_quantity').value = ""; // 固化材数量もクリア
+                document.querySelector('#soil_disposal_cost_body tr').children[2].querySelector('input[type="number"]').value = ""; // 作業費数量もクリア
+                document.querySelector('#soil_disposal_cost_body tr').children[6].querySelector('input[type="number"]').value = ""; // 台数単価もクリア
+            }
+
+            // その他項目
+            if (document.getElementById('other_checkbox').checked) {
+                document.querySelectorAll('#other_cost_body input[type="number"]').forEach(input => {
+                    calculateRow(input);
+                });
+            } else {
+                // 非表示時は「その他」の合計を0に
+                document.getElementById('other_cost_total').textContent = "";
+                // その他セクション内の入力値もクリア
+                document.querySelectorAll('#other_cost_body input[type="text"], #other_cost_body input[type="number"]').forEach(input => {
+                    input.value = "";
+                });
+                document.querySelectorAll('#other_cost_body .amount').forEach(span => {
+                    span.textContent = "";
+                });
+            }
+            
+            calculateGeneralAdminCost(); // 一般管理費は常に表示
+
+            updateSectionTotal('subcontract_cost_table');
+            updateSectionTotal('solidifier_cost_table');
+            updateSectionTotal('guardman_cost_table');
+            updateSectionTotal('roughter_cost_table');
+            updateSectionTotal('water_sprinkler_cost_table');
+            updateSectionTotal('land_creation_cost_table');
+            updateSectionTotal('soil_disposal_cost_table');
+            updateSectionTotal('other_cost_table'); // その他項目の合計も更新
+            updateSectionTotal('general_admin_cost_table');
+
+            updateGrandTotal();
+        }
+
+        // 総原価と利益を更新する関数
+        function updateGrandTotal() {
+            const subcontractTotal = parseFloat(document.getElementById('subcontract_cost_total').textContent.replace(/,/g, '')) || 0;
+            const solidifierTotal = parseFloat(document.getElementById('solidifier_cost_total').textContent.replace(/,/g, '')) || 0;
+            
+            // チェックボックスで表示/非表示が切り替わる項目の合計は、表示されている場合のみ加算
+            const guardmanTotal = document.getElementById('guardman_checkbox').checked ? (parseFloat(document.getElementById('guardman_cost_total').textContent.replace(/,/g, '')) || 0) : 0;
+            const roughterTotal = document.getElementById('roughter_checkbox').checked ? (parseFloat(document.getElementById('roughter_cost_total').textContent.replace(/,/g, '')) || 0) : 0;
+            const waterSprinklerTotal = document.getElementById('water_sprinkler_checkbox').checked ? (parseFloat(document.getElementById('water_sprinkler_cost_total').textContent.replace(/,/g, '')) || 0) : 0;
+            const landCreationTotal = document.getElementById('land_creation_checkbox').checked ? (parseFloat(document.getElementById('land_creation_cost_total').textContent.replace(/,/g, '')) || 0) : 0;
+            const soilDisposalTotal = document.getElementById('soil_disposal_checkbox').checked ? (parseFloat(document.getElementById('soil_disposal_cost_total').textContent.replace(/,/g, '')) || 0) : 0;
+            
+            const otherTotal = document.getElementById('other_checkbox').checked ? (parseFloat(document.getElementById('other_cost_total').textContent.replace(/,/g, '')) || 0) : 0; // その他項目の合計
+            const generalAdminTotal = parseFloat(document.getElementById('general_admin_cost_total').textContent.replace(/,/g, '')) || 0;
+
+            const grandTotal = subcontractTotal + solidifierTotal + guardmanTotal + roughterTotal + waterSprinklerTotal + landCreationTotal + soilDisposalTotal + otherTotal + generalAdminTotal;
+            document.getElementById('grand_total_cost').textContent = grandTotal === 0 ? "" : grandTotal.toLocaleString();
+
+            // 利益の計算と表示
+            const estimateAmount = parseFloat(document.getElementById('estimate_amount').value) || 0;
+            const profitLoss = estimateAmount - grandTotal;
+            const profitLossSpan = document.getElementById('profit_loss_amount');
+
+            if (estimateAmount === 0 && grandTotal === 0) { // 両方0なら空欄
+                profitLossSpan.textContent = " 円";
+                profitLossSpan.classList.remove('profit', 'loss');
+            } else if (profitLoss >= 0) {
+                profitLossSpan.textContent = profitLoss.toLocaleString() + ' 円';
+                profitLossSpan.classList.remove('loss');
+                profitLossSpan.classList.add('profit');
+            } else {
+                profitLossSpan.textContent = '▲' + Math.abs(profitLoss).toLocaleString() + ' 円';
+                profitLossSpan.classList.remove('profit');
+                profitLossSpan.classList.add('loss');
+            }
+        }
+
+        // 行を追加する関数
+        // solidifier_cost_body 用と other_cost_body 用で、デフォルト値とoninputイベントが異なる
+        function addRow(tbodyId, item = '', unit = '', quantity = '', unitPrice = '', description = '') {
+            const tbody = document.getElementById(tbodyId);
+            const newRow = document.createElement('tr');
+            let oninputFunction = `calculateRow(this)`;
+            let removeButtonOnClick = `removeRow(this)`;
+
+            if (tbodyId === 'solidifier_cost_body') {
+                oninputFunction = `calculateRow(this); updateSoilDisposalSolidifierQuantity();`;
+                removeButtonOnClick = `removeRow(this); updateSoilDisposalSolidifierQuantity();`;
+            }
+
+            newRow.innerHTML = `
+                <td><input type="text" value="${item}"></td>
+                <td><input type="text" value="${unit}"></td>
+                <td><input type="number" value="${quantity}" oninput="${oninputFunction}"></td>
+                <td><input type="number" value="${unitPrice}" oninput="calculateRow(this)"></td>
+                <td class="text-right"><span class="amount"></span></td>
+                <td><input type="text" value="${description}"></td>
+                <td><button class="remove-row-btn" onclick="${removeButtonOnClick}">削除</button></td>
+            `;
+            tbody.appendChild(newRow);
+            calculateAll();
+        }
+
+        // 行を削除する関数
+        function removeRow(buttonElement) {
+            const row = buttonElement.closest('tr');
+            const tbody = row.closest('tbody');
+            if (tbody.children.length > 1) { // 最後の行は削除できない
+                row.remove();
+                calculateAll();
+            } else {
+                alert('これ以上行を削除できません。');
+            }
+        }
+
+
+        // =========================================================================
+        // CSV出力ロジック
+        // =========================================================================
+
+        // showCsvPreview() 関数は削除されました
+
+        // closeModal() 関数は削除されました
+
+        function downloadCsvFromPreview() { // 関数名はそのままですが、プレビューを経由せず直接ダウンロードします
+            const projectName = document.getElementById('project_name').value;
+            const projectDate = document.getElementById('project_date').value;
+            const filename = `${projectName}_原価計算_${projectDate}.csv`;
+
+            const blob = new Blob(["\ufeff", currentCsvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            // closeModal(); // モーダルがないため削除
+        }
+
+        function exportToCsv() {
+            currentCsvContent = generateCsvContent();
+            downloadCsvFromPreview();
+        }
+
+        function escapeCsvValue(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            let str = String(value);
+            if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+                str = '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        }
+
+        function generateCsvContent() {
+            const projectName = document.getElementById('project_name').value;
+            const projectDate = document.getElementById('project_date').value;
+            const constructionDays = document.getElementById('construction_days').value;
+            const estimateAmount = document.getElementById('estimate_amount').value;
+            const profitLossAmount = document.getElementById('profit_loss_amount').textContent.replace(/,/g, '').replace(' 円', ''); // " 円"を削除して数値部分のみを取得
+
+            let csvContent = "";
+
+            csvContent += `工事名,${escapeCsvValue(projectName)}\n`;
+            csvContent += `日付,${escapeCsvValue(projectDate)}\n`;
+            csvContent += `工事日数,${escapeCsvValue(constructionDays)}\n`;
+            
+            // チェックボックスの状態をCSVに含める
+            csvContent += `ガードマン使用,${document.getElementById('guardman_checkbox').checked ? 'はい' : 'いいえ'}\n`;
+            csvContent += `ラフター使用,${document.getElementById('roughter_checkbox').checked ? 'はい' : 'いいえ'}\n`;
+            csvContent += `散水車使用,${document.getElementById('water_sprinkler_checkbox').checked ? 'はい' : 'いいえ'}\n`;
+            csvContent += `造成費用使用,${document.getElementById('land_creation_checkbox').checked ? 'はい' : 'いいえ'}\n`;
+            csvContent += `残土処分費使用,${document.getElementById('soil_disposal_checkbox').checked ? 'はい' : 'いいえ'}\n`;
+            csvContent += `その他作業使用,${document.getElementById('other_checkbox').checked ? 'はい' : 'いいえ'}\n`; // 'その他作業'のチェックボックス状態を追加
+            
+            csvContent += `\n`; // 区切り
+
+            // 見積もりと利益
+            csvContent += `カテゴリ,項目,数量,単位,単価,金額,摘要\n`;
+            csvContent += `見積もりと利益,見積もり金額,,,,,${escapeCsvValue(estimateAmount)},,\n`;
+            csvContent += `見積もりと利益,利益（黒字/赤字）,,,,,${escapeCsvValue(profitLossAmount)},,\n`;
+            csvContent += `\n`;
+
+            // 外注費
+            csvContent += `外注費,,,,,,,\n`;
+            csvContent += `項目,単位,数量（日数）,単価,連日割引,金額,摘要\n`;
+            const subcontractRow = document.querySelector('#subcontract_cost_body tr');
+            const subcontractItem = '外注費';
+            const subcontractUnit = '日';
+            const subcontractQuantity = subcontractRow.children[2].querySelector('input[type="number"]').value;
+            let subcontractUnitPrice;
+            const subcontractSelect = subcontractRow.children[3].querySelector('select');
+            const subcontractCustomInput = subcontractRow.children[3].querySelector('.custom-unit-price');
+            if (subcontractSelect.value === 'custom') {
+                subcontractUnitPrice = subcontractCustomInput.value;
+            } else {
+                subcontractUnitPrice = subcontractSelect.value;
+            }
+            const subcontractDiscount = subcontractRow.children[4].querySelector('input[type="checkbox"]').checked ? 'あり' : 'なし';
+            const subcontractAmount = document.getElementById('subcontract_amount').textContent.replace(/,/g, '');
+            const subcontractDescription = subcontractRow.children[6].querySelector('input[type="text"]').value;
+            csvContent += `${escapeCsvValue(subcontractItem)},${escapeCsvValue(subcontractUnit)},${escapeCsvValue(subcontractQuantity)},${escapeCsvValue(subcontractUnitPrice)},${escapeCsvValue(subcontractDiscount)},${escapeCsvValue(subcontractAmount)},${escapeCsvValue(subcontractDescription)}\n`;
+            csvContent += `外注費 合計,,,,,,${escapeCsvValue(document.getElementById('subcontract_cost_total').textContent.replace(/,/g, ''))}\n`;
+            csvContent += `\n`;
+
+            // 固化材
+            csvContent += `固化材,,,,,,,\n`;
+            csvContent += `項目,単位,数量,単価,金額,摘要\n`;
+            document.querySelectorAll('#solidifier_cost_body tr').forEach(row => {
+                const item = row.children[0].querySelector('input[type="text"]').value;
+                const unit = row.children[1].querySelector('input[type="text"]').value;
+                const quantity = row.children[2].querySelector('input[type="number"]').value;
+                const unitPrice = row.children[3].querySelector('input[type="number"]').value;
+                const amount = row.children[4].querySelector('.amount').textContent.replace(/,/g, '');
+                const description = row.children[5].querySelector('input[type="text"]').value;
+                csvContent += `${escapeCsvValue(item)},${escapeCsvValue(unit)},${escapeCsvValue(quantity)},${escapeCsvValue(unitPrice)},${escapeCsvValue(amount)},${escapeCsvValue(description)}\n`;
+            });
+            csvContent += `固化材 合計,,,,,${escapeCsvValue(document.getElementById('solidifier_cost_total').textContent.replace(/,/g, ''))},,\n`;
+            csvContent += `\n`;
+
+            // ガードマン (表示されている場合のみ)
+            if (!document.getElementById('guardman_section_content').classList.contains('hidden')) {
+                csvContent += `ガードマン,,,,,,,\n`;
+                csvContent += `項目,単位,数量（日数）,人数,単価,金額,摘要\n`;
+                const guardmanRow = document.querySelector('#guardman_cost_body tr');
+                const guardmanItem = 'ガードマン';
+                const guardmanUnit = '人日';
+                const guardmanQuantity = guardmanRow.children[2].querySelector('input[type="number"]').value;
+                const guardmanPersons = guardmanRow.children[3].querySelector('input[type="number"]').value;
+                const guardmanUnitPrice = guardmanRow.children[4].querySelector('input[type="number"]').value;
+                const guardmanAmount = document.getElementById('guardman_amount').textContent.replace(/,/g, '');
+                const guardmanDescription = guardmanRow.children[6].querySelector('input[type="text"]').value;
+                csvContent += `${escapeCsvValue(guardmanItem)},${escapeCsvValue(guardmanUnit)},${escapeCsvValue(guardmanQuantity)},${escapeCsvValue(guardmanPersons)},${escapeCsvValue(guardmanUnitPrice)},${escapeCsvValue(guardmanAmount)},${escapeCsvValue(guardmanDescription)}\n`;
+                csvContent += `ガードマン 合計,,,,,${escapeCsvValue(document.getElementById('guardman_cost_total').textContent.replace(/,/g, ''))},,\n`;
+                csvContent += `\n`;
+            }
+
+            // ラフター (表示されている場合のみ)
+            if (!document.getElementById('roughter_section_content').classList.contains('hidden')) {
+                csvContent += `ラフター,,,,,,,\n`;
+                csvContent += `項目,単位,数量（日数）,単価,金額,摘要\n`;
+                const roughterRow = document.querySelector('#roughter_cost_body tr');
+                const roughterItem = 'ラフター';
+                const roughterUnit = '日';
+                const roughterQuantity = roughterRow.children[2].querySelector('input[type="number"]').value;
+                const roughterUnitPrice = roughterRow.children[3].querySelector('input[type="number"]').value;
+                const roughterAmount = document.getElementById('roughter_amount').textContent.replace(/,/g, '');
+                const roughterDescription = roughterRow.children[5].querySelector('input[type="text"]').value;
+                csvContent += `${escapeCsvValue(roughterItem)},${escapeCsvValue(roughterUnit)},${escapeCsvValue(roughterQuantity)},${escapeCsvValue(roughterUnitPrice)},${escapeCsvValue(roughterAmount)},${escapeCsvValue(roughterDescription)}\n`;
+                csvContent += `ラフター 合計,,,,,${escapeCsvValue(document.getElementById('roughter_cost_total').textContent.replace(/,/g, ''))},,\n`;
+                csvContent += `\n`;
+            }
+
+            // 散水車 (表示されている場合のみ)
+            if (!document.getElementById('water_sprinkler_section_content').classList.contains('hidden')) {
+                csvContent += `散水車,,,,,,,\n`;
+                csvContent += `項目,単位,数量（日数）,単価,金額,摘要\n`;
+                const waterSprinklerRow = document.querySelector('#water_sprinkler_cost_body tr');
+                const waterSprinklerItem = '散水車';
+                const waterSprinklerUnit = '日';
+                const waterSprinklerQuantity = waterSprinklerRow.children[2].querySelector('input[type="number"]').value;
+                const waterSprinklerUnitPrice = waterSprinklerRow.children[3].querySelector('input[type="number"]').value;
+                const waterSprinklerAmount = document.getElementById('water_sprinkler_amount').textContent.replace(/,/g, '');
+                const waterSprinklerDescription = waterSprinklerRow.children[5].querySelector('input[type="text"]').value;
+                csvContent += `${escapeCsvValue(waterSprinklerItem)},${escapeCsvValue(waterSprinklerUnit)},${escapeCsvValue(waterSprinklerQuantity)},${escapeCsvValue(waterSprinklerUnitPrice)},${escapeCsvValue(waterSprinklerAmount)},${escapeCsvValue(waterSprinklerDescription)}\n`;
+                csvContent += `散水車 合計,,,,,${escapeCsvValue(document.getElementById('water_sprinkler_cost_total').textContent.replace(/,/g, ''))},,\n`;
+                csvContent += `\n`;
+            }
+
+            // 造成費用 (表示されている場合のみ)
+            if (!document.getElementById('land_creation_section_content').classList.contains('hidden')) {
+                csvContent += `造成費用,,,,,,,\n`;
+                csvContent += `項目,単位,数量（式）,単価,金額,摘要\n`;
+                const landCreationRow = document.querySelector('#land_creation_cost_body tr');
+                const landCreationItem = '造成費用';
+                const landCreationUnit = '式';
+                const landCreationQuantity = landCreationRow.children[2].querySelector('input[type="number"]').value;
+                const landCreationUnitPrice = landCreationRow.children[3].querySelector('input[type="number"]').value;
+                const landCreationAmount = document.getElementById('land_creation_amount').textContent.replace(/,/g, '');
+                const landCreationDescription = landCreationRow.children[5].querySelector('input[type="text"]').value;
+                csvContent += `${escapeCsvValue(landCreationItem)},${escapeCsvValue(landCreationUnit)},${escapeCsvValue(landCreationQuantity)},${escapeCsvValue(landCreationUnitPrice)},${escapeCsvValue(landCreationAmount)},${escapeCsvValue(landCreationDescription)}\n`;
+                csvContent += `造成費用 合計,,,,,${escapeCsvValue(document.getElementById('land_creation_cost_total').textContent.replace(/,/g, ''))},,\n`;
+                csvContent += `\n`;
+            }
+
+            // 残土処分費 (表示されている場合のみ)
+            if (!document.getElementById('soil_disposal_section_content').classList.contains('hidden')) {
+                csvContent += `残土処分費,,,,,,,,,\n`;
+                csvContent += `項目,単位,作業費数量（日数）,作業費単価,固化材数量（t）,台数,台数単価,金額,摘要\n`;
+                const soilDisposalRow = document.querySelector('#soil_disposal_cost_body tr');
+                const soilDisposalItem = '残土処分費';
+                const soilDisposalUnit = '式';
+                const soilDisposalWorkQuantity = soilDisposalRow.children[2].querySelector('input[type="number"]').value;
+                const soilDisposalWorkUnitPrice = soilDisposalRow.children[3].querySelector('input[type="number"]').value;
+                const soilDisposalSolidifierQuantity = soilDisposalRow.children[4].querySelector('input[type="number"]').value;
+                const disposalTruckCount = document.getElementById('disposal_truck_count').textContent;
+                const disposalTruckUnitPrice = soilDisposalRow.children[6].querySelector('input[type="number"]').value;
+                const soilDisposalAmount = document.getElementById('soil_disposal_amount').textContent.replace(/,/g, '');
+                const soilDisposalDescription = soilDisposalRow.children[8].querySelector('input[type="text"]').value;
+                csvContent += `${escapeCsvValue(soilDisposalItem)},${escapeCsvValue(soilDisposalUnit)},${escapeCsvValue(soilDisposalWorkQuantity)},${escapeCsvValue(soilDisposalWorkUnitPrice)},${escapeCsvValue(soilDisposalSolidifierQuantity)},${escapeCsvValue(disposalTruckCount)},${escapeCsvValue(disposalTruckUnitPrice)},${escapeCsvValue(soilDisposalAmount)},${escapeCsvValue(soilDisposalDescription)}\n`;
+                csvContent += `残土処分費 合計,,,,,,,,${escapeCsvValue(document.getElementById('soil_disposal_cost_total').textContent.replace(/,/g, ''))}\n`;
+                csvContent += `\n`;
+            }
+
+            // その他 (表示されている場合のみ)
+            if (!document.getElementById('other_section_content').classList.contains('hidden')) {
+                csvContent += `その他,,,,,,,\n`;
+                csvContent += `項目,単位,数量,単価,金額,摘要\n`;
+                document.querySelectorAll('#other_cost_body tr').forEach(row => {
+                    const item = row.children[0].querySelector('input[type="text"]').value;
+                    const unit = row.children[1].querySelector('input[type="text"]').value;
+                    const quantity = row.children[2].querySelector('input[type="number"]').value;
+                    const unitPrice = row.children[3].querySelector('input[type="number"]').value;
+                    const amount = row.children[4].querySelector('.amount').textContent.replace(/,/g, '');
+                    const description = row.children[5].querySelector('input[type="text"]').value;
+                    csvContent += `${escapeCsvValue(item)},${escapeCsvValue(unit)},${escapeCsvValue(quantity)},${escapeCsvValue(unitPrice)},${escapeCsvValue(amount)},${escapeCsvValue(description)}\n`;
+                });
+                csvContent += `その他 合計,,,,,${escapeCsvValue(document.getElementById('other_cost_total').textContent.replace(/,/g, ''))},,\n`;
+                csvContent += `\n`;
+            }
+
+            // 一般管理費
+            csvContent += `一般管理費,,,,,,,\n`;
+            csvContent += `項目,単位,数量（日数）,単価,金額,摘要\n`;
+            const generalAdminRow = document.querySelector('#general_admin_cost_body tr');
+            const generalAdminItem = '一般管理費';
+            const generalAdminUnit = '日';
+            const generalAdminQuantity = generalAdminRow.children[2].querySelector('input[type="number"]').value;
+            const generalAdminUnitPrice = generalAdminRow.children[3].querySelector('input[type="number"]').value; // readonlyなのでそのまま取得
+            const generalAdminAmount = document.getElementById('general_admin_amount').textContent.replace(/,/g, '');
+            const generalAdminDescription = generalAdminRow.children[5].querySelector('input[type="text"]').value;
+            csvContent += `${escapeCsvValue(generalAdminItem)},${escapeCsvValue(generalAdminUnit)},${escapeCsvValue(generalAdminQuantity)},${escapeCsvValue(generalAdminUnitPrice)},${escapeCsvValue(generalAdminAmount)},${escapeCsvValue(generalAdminDescription)}\n`;
+            csvContent += `一般管理費 合計,,,,,${escapeCsvValue(document.getElementById('general_admin_cost_total').textContent.replace(/,/g, ''))},,\n`;
+            csvContent += `\n`;
+
+
+            // 総原価
+            const grandTotalCost = document.getElementById('grand_total_cost').textContent.replace(/,/g, '');
+            csvContent += `総原価 合計,,,,,,${escapeCsvValue(grandTotalCost)}\n`;
+
+            return csvContent;
+        }
+    </script>
+</body>
+</html>
